@@ -1,75 +1,70 @@
-// entities.js — traffic cars and pedestrians of Solara Coast.
-// Traffic follows the road grid, turns at intersections, slows for cars
-// ahead. Pedestrians walk the sidewalks and flee from danger.
-(function (global) {
-  'use strict';
-  const W = global.SolaraWorld, CFG = global.SolaraConfig;
-  const rng = global.solaraRng(777);
-  function makeCar(x, y, angle, color, isTraffic) {
-    return { x, y, angle, speed: 0, color: color || CFG.CAR_COLORS[Math.floor(rng() * CFG.CAR_COLORS.length)], w: 34, h: 18, traffic: !!isTraffic, maxSpeed: 70 + rng() * 40, targetSpeed: 70, turnCooldown: 0, hp: 100, maxHp: 100, upgrades: { engine: 0, armor: 0 }, smoke: 0 };
-  }
-  function spawnTraffic(n) {
-    const cars = [];
-    for (let i = 0; i < n; i++) {
-      const rx = W.roadsV[Math.floor(rng() * W.roadsV.length)];
-      const ry = W.roadsH[Math.floor(rng() * W.roadsH.length)];
-      const horizontal = rng() < 0.5;
-      cars.push(makeCar(rx + (horizontal ? (rng() - 0.5) * 200 : (rng() < 0.5 ? -14 : 14)),
-        ry + (horizontal ? (rng() < 0.5 ? -14 : 14) : (rng() - 0.5) * 200),
-        horizontal ? (rng() < 0.5 ? 0 : Math.PI) : (rng() < 0.5 ? Math.PI / 2 : -Math.PI / 2), null, true));
+// entities.js — traffic cars, pedestrians, parked cars, birds, waves.
+(function (root) {
+  var S = root.Solara || (root.Solara = {});
+  var E = S.Entities = { traffic: [], peds: [], birds: [], waveT: 0 };
+  var CAR_COLORS = ['#c0392b', '#2980b9', '#f1c40f', '#ecf0f1', '#2c3e50', '#e67e22', '#8e44ad', '#16a085'];
+  var PED_COLORS = ['#e74c3c', '#3498db', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#ecf0f1'];
+
+  E.spawn = function () {
+    var rand = S.rng(777);
+    E.traffic = []; E.peds = []; E.birds = [];
+    for (var i = 0; i < S.CONFIG.maxTraffic; i++) {
+      var vertical = rand() < 0.5;
+      E.traffic.push({
+        id: 't' + i, x: -180 + rand() * 360, z: -180 + rand() * 360,
+        angle: vertical ? (rand() < 0.5 ? 0 : Math.PI) : (rand() < 0.5 ? Math.PI / 2 : -Math.PI / 2),
+        speed: 6 + rand() * 6, color: CAR_COLORS[i % CAR_COLORS.length], hp: 100, stopped: false
+      });
     }
-    return cars;
-  }
-  function updateTraffic(cars, dt, playerCar) {
-    for (const c of cars) {
-      c.turnCooldown -= dt;
-      // At an intersection, sometimes turn.
-      const nearX = W.roadsV.some(rx => Math.abs(c.x - rx) < 8);
-      const nearY = W.roadsH.some(ry => Math.abs(c.y - ry) < 8);
-      if (nearX && nearY && c.turnCooldown <= 0 && rng() < 0.01) {
-        c.angle += (rng() < 0.5 ? 1 : -1) * Math.PI / 2;
-        c.turnCooldown = 2;
-      }
-      // Slow for a car ahead.
-      let ahead = false;
-      for (const o of cars) {
-        if (o === c) continue;
-        const dx = o.x - c.x, dy = o.y - c.y, d = Math.hypot(dx, dy);
-        if (d < 46 && d > 1 && Math.cos(Math.atan2(dy, dx) - c.angle) > 0.7) { ahead = true; break; }
-      }
-      const target = ahead ? 0 : c.maxSpeed;
-      c.speed += (target - c.speed) * Math.min(1, dt * 1.5);
-      c.x += Math.cos(c.angle) * c.speed * dt;
-      c.y += Math.sin(c.angle) * c.speed * dt;
-      // Wrap around the world edges on roads.
-      if (c.x < 40) c.x = CFG.WORLD_W - 40; if (c.x > CFG.WORLD_W - 40) c.x = 40;
-      if (c.y < 40) c.y = CFG.WORLD_H - 40; if (c.y > CFG.WORLD_H - 40) c.y = 40;
+    for (var j = 0; j < S.CONFIG.maxPeds; j++) {
+      E.peds.push({
+        id: 'p' + j, x: -170 + rand() * 340, z: -170 + rand() * 340,
+        angle: rand() * Math.PI * 2, speed: 1 + rand() * 1.2,
+        color: PED_COLORS[j % PED_COLORS.length], alive: true
+      });
     }
-  }
-  function spawnPeds(n) {
-    const peds = [];
-    const names = ['Mara', 'Tomas', 'Lia', 'Kiko', 'Ana', 'Rudi', 'Sinta', 'Bimo'];
-    for (let i = 0; i < n; i++) {
-      const rx = W.roadsV[Math.floor(rng() * W.roadsV.length)];
-      const ry = W.roadsH[Math.floor(rng() * W.roadsH.length)];
-      peds.push({ x: rx + (rng() - 0.5) * 120, y: ry + (rng() - 0.5) * 120, angle: rng() * Math.PI * 2, speed: 22 + rng() * 18, name: names[i % names.length], flee: 0, color: ['#e07a5f', '#3d7dd9', '#4fae62', '#c65aad', '#e8c33d', '#f2f2f2', '#ff8c42'][i % 7], height: 0.9 + rng() * 0.25, hat: rng() < 0.3 });
+    for (var k = 0; k < 12; k++) {
+      E.birds.push({ x: -150 + rand() * 300, y: 28 + rand() * 14, z: -150 + rand() * 300, phase: rand() * 6.28, speed: 3 + rand() * 3 });
     }
-    return peds;
-  }
-  function updatePeds(peds, dt, danger) {
-    for (const p of peds) {
-      let run = false;
-      if (danger) {
-        const d = Math.hypot(p.x - danger.x, p.y - danger.y);
-        if (d < 160) { p.flee = 1.2; run = true; p.angle = Math.atan2(p.y - danger.y, p.x - danger.x); }
-      }
-      if (p.flee > 0) p.flee -= dt;
-      if (rng() < 0.004) p.angle += (rng() - 0.5) * 2;
-      const sp = run || p.flee > 0 ? p.speed * 2.6 : p.speed;
-      let nx = p.x + Math.cos(p.angle) * sp * dt, ny = p.y + Math.sin(p.angle) * sp * dt;
-      if (W.hitBuilding(nx, ny, 8)) { p.angle += Math.PI / 2; nx = p.x; ny = p.y; }
-      const c = W.clampWorld(nx, ny, 10); p.x = c.x; p.y = c.y;
+    return E;
+  };
+  E.update = function (dt, t) {
+    E.waveT = t;
+    var i, c;
+    for (i = 0; i < E.traffic.length; i++) {
+      c = E.traffic[i];
+      if (c.stopped) continue;
+      c.x += Math.sin(c.angle) * c.speed * dt;
+      c.z += Math.cos(c.angle) * c.speed * dt;
+      if (c.x > 205) c.x = -205; if (c.x < -205) c.x = 205;
+      if (c.z > 205) c.z = -205; if (c.z < -205) c.z = 205;
     }
-  }
-  global.SolaraEntities = { makeCar, spawnTraffic, updateTraffic, spawnPeds, updatePeds };
-})(window);
+    for (i = 0; i < E.peds.length; i++) {
+      var p = E.peds[i];
+      if (!p.alive) continue;
+      p.x += Math.sin(p.angle) * p.speed * dt;
+      p.z += Math.cos(p.angle) * p.speed * dt;
+      if (p.x > 200 || p.x < -200 || p.z > 200 || p.z < -200) p.angle += Math.PI / 2;
+      if (Math.random() < 0.001) p.angle += (Math.random() - 0.5) * 2;
+    }
+    for (i = 0; i < E.birds.length; i++) {
+      var b = E.birds[i];
+      b.x += Math.sin(b.phase) * b.speed * dt;
+      b.z += Math.cos(b.phase * 0.7) * b.speed * dt;
+      if (b.x > 210) b.x = -210; if (b.z > 210) b.z = -210;
+    }
+  };
+  // Nearest driveable car within range (traffic or parked).
+  E.nearestCar = function (x, z, maxD) {
+    var best = null, bd = maxD || 6;
+    var all = E.traffic.concat(S.World.cars || []);
+    for (var i = 0; i < all.length; i++) {
+      var d = S.dist2d(x, z, all[i].x, all[i].z);
+      if (d < bd) { bd = d; best = all[i]; }
+    }
+    return best;
+  };
+  E.counts = function () {
+    return { traffic: E.traffic.length, peds: E.peds.filter(function (p) { return p.alive; }).length, birds: E.birds.length };
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

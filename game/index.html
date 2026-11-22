@@ -3,33 +3,117 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SOLARA HEAT — open-world crime in Solara Coast</title>
+<title>SOLARA HEAT — Solara Coast</title>
 <style>
-  html, body { margin: 0; padding: 0; background: #101820; height: 100%; overflow: hidden; }
-  body { display: flex; align-items: center; justify-content: center; }
-  #stage { position: relative; width: 1280px; height: 720px; max-width: 100vw; max-height: 100vh; }
-  #gl, #hud { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
-  #hud { pointer-events: none; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a0f2e; font-family: 'Segoe UI', Arial, sans-serif; color: #fff; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  .panel { background: rgba(10, 10, 25, 0.62); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; padding: 10px 14px; }
+  #hud-top-left { position: absolute; top: 14px; left: 14px; }
+  #hud-top-left .cash { font-size: 30px; font-weight: 800; color: #7dff9a; text-shadow: 0 2px 6px #000; }
+  #hud-top-left .sub { font-size: 14px; opacity: 0.95; }
+  #hud-wanted { font-size: 26px; letter-spacing: 3px; color: #ffd23f; text-shadow: 0 2px 6px #000; margin-top: 4px; }
+  #hud-wanted.hot { color: #ff4040; }
+  #hud-top-right { position: absolute; top: 14px; right: 14px; text-align: right; }
+  #minimap { width: 190px; height: 190px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.5); background: #0e2a3a; }
+  #hud-district { font-size: 13px; margin-top: 6px; opacity: 0.9; }
+  #hud-bottom-left { position: absolute; bottom: 14px; left: 14px; }
+  #hud-objective { font-size: 16px; font-weight: 700; color: #ffd23f; text-shadow: 0 2px 4px #000; max-width: 420px; }
+  #hud-radio { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+  #hud-bottom-right { position: absolute; bottom: 14px; right: 14px; text-align: right; }
+  .bar { width: 170px; height: 10px; background: rgba(0,0,0,0.6); border-radius: 5px; overflow: hidden; margin-top: 4px; }
+  .bar > div { height: 100%; background: linear-gradient(90deg, #ff5e8a, #ffd23f); }
+  #hud-carbar { background: #2ec4b6; }
+  #hud-ammo, #hud-carhp, #hud-speed { font-size: 14px; margin-top: 3px; text-shadow: 0 1px 3px #000; }
+  #toast { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); padding: 10px 22px; border-radius: 8px; font-size: 18px; font-weight: 700; opacity: 0; transition: opacity 0.3s; }
+  .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 10; background: linear-gradient(160deg, rgba(255,94,138,0.85), rgba(26,15,46,0.92)); }
+  .screen h1 { font-size: 64px; letter-spacing: 4px; text-shadow: 0 4px 18px #000; }
+  .screen h2 { font-size: 20px; font-weight: 400; margin: 10px 0 24px; opacity: 0.95; }
+  .screen button { pointer-events: auto; font-size: 20px; font-weight: 800; padding: 14px 42px; border: none; border-radius: 10px; background: #ffd23f; color: #1a0f2e; cursor: pointer; margin: 6px; }
+  .screen button:hover { background: #ffe27a; }
+  .controls { font-size: 14px; line-height: 1.7; opacity: 0.95; margin-top: 18px; background: rgba(0,0,0,0.35); padding: 12px 20px; border-radius: 10px; }
+  #pause-screen, #busted-screen { display: none; background: rgba(10,10,25,0.82); }
+  #busted-screen h1 { color: #ff4040; }
+  #garage-panel { position: absolute; bottom: 120px; right: 14px; z-index: 6; pointer-events: auto; display: none; }
+  #garage-panel button { display: block; width: 100%; margin-top: 6px; padding: 8px 12px; border-radius: 6px; border: none; background: #2ec4b6; color: #06231f; font-weight: 700; cursor: pointer; }
 </style>
 </head>
 <body>
-<div id="stage">
-  <canvas id="gl" width="1280" height="720"></canvas>
-  <canvas id="hud" width="1280" height="720"></canvas>
+<canvas id="gl" width="1280" height="720"></canvas>
+<div id="hud">
+  <div id="hud-top-left" class="panel">
+    <div class="cash" id="hud-cash">$250</div>
+    <div class="sub"><span id="hud-respect">Respect 0</span> • <span id="hud-rank">Rookie</span></div>
+    <div class="bar"><div id="hud-rankbar" style="width:0%"></div></div>
+    <div id="hud-wanted" class="stars">☆☆☆☆☆</div>
+  </div>
+  <div id="hud-top-right" class="panel">
+    <canvas id="minimap" width="190" height="190"></canvas>
+    <div id="hud-district">Solara Coast</div>
+  </div>
+  <div id="hud-bottom-left" class="panel">
+    <div id="hud-objective">Next mission…</div>
+    <div id="hud-radio">SOLARA FM</div>
+  </div>
+  <div id="hud-bottom-right" class="panel">
+    <div id="hud-ammo">Fists • Ammo ∞</div>
+    <div id="hud-carhp">Car 100%</div>
+    <div class="bar"><div id="hud-carbar" style="width:100%"></div></div>
+    <div id="hud-speed">On foot</div>
+  </div>
+  <div id="toast"></div>
+</div>
+<div id="garage-panel" class="panel">
+  <b>SOLARA GARAGE</b>
+  <button id="garage-repair">Repair — $50</button>
+  <button id="garage-tune">Engine Tune — $200</button>
+  <button id="garage-armor">Armor — $150</button>
+  <button id="garage-repaint">Repaint — $40</button>
+</div>
+<div id="menu-screen" class="screen">
+  <h1>SOLARA HEAT</h1>
+  <h2>An original open-world crime game in Solara Coast</h2>
+  <button id="start-btn">START ENGINE</button>
+  <div class="controls">
+    WASD move / drive &nbsp;•&nbsp; Shift run &nbsp;•&nbsp; E enter / steal car &nbsp;•&nbsp; Space punch / handbrake<br>
+    F shoot &nbsp;•&nbsp; 1 fists / 2 pistol &nbsp;•&nbsp; G garage (Marina) &nbsp;•&nbsp; T race (downtown)<br>
+    V radio &nbsp;•&nbsp; M mute &nbsp;•&nbsp; P pause &nbsp;•&nbsp; 10 missions, 5 wanted stars, races, garage
+  </div>
+</div>
+<div id="pause-screen" class="screen">
+  <h1>PAUSED</h1>
+  <h2>Solara Coast waits for no one. Almost.</h2>
+  <button id="resume-btn">RESUME</button>
+</div>
+<div id="busted-screen" class="screen">
+  <h1>BUSTED</h1>
+  <h2 id="busted-reason">Caught by the Solara PD</h2>
+  <p style="margin-bottom:16px">The PD took $100. Your ride is gone.</p>
+  <button id="retry-btn">BACK ON THE STREETS</button>
 </div>
 <script src="src/config.js"></script>
+<script src="src/engine3d.js"></script>
 <script src="src/world.js"></script>
-<script src="src/input.js"></script>
-<script src="src/audio.js"></script>
 <script src="src/entities.js"></script>
 <script src="src/player.js"></script>
 <script src="src/police.js"></script>
 <script src="src/missions.js"></script>
 <script src="src/weapons.js"></script>
 <script src="src/activities.js"></script>
-<script src="src/engine3d.js"></script>
-<script src="src/render3d.js"></script>
+<script src="src/audio.js"></script>
 <script src="src/hud.js"></script>
+<script src="src/input.js"></script>
+<script src="src/render3d.js"></script>
 <script src="src/main.js"></script>
+<script>
+  // Show the garage panel when the player is near the Marina garage.
+  setInterval(function () {
+    var p = document.getElementById('garage-panel');
+    if (p && window.Solara) {
+      p.style.display = window.Solara.Activities.nearGarage() && window.Solara.state.started ? 'block' : 'none';
+    }
+  }, 400);
+</script>
 </body>
 </html>

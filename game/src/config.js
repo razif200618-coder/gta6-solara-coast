@@ -1,62 +1,85 @@
-// config.js — constants, palette and city data for SOLARA HEAT.
-// Everything here is original: the city of Solara Coast, its districts,
-// its people and its story are invented for this game.
-(function (global) {
-  'use strict';
-  const CFG = {
-    WORLD_W: 2600,
-    WORLD_H: 1900,
-    VIEW_W: 1280,
-    VIEW_H: 720,
-    ROAD_W: 64,
-    BLOCK: 320,
-    SAVE_KEY: 'solara-heat-save-v1',
-    COLORS: {
-      grass: '#7fae5a', grass2: '#8fbf68', road: '#3a3f4a', roadLine: '#e8d44d',
-      sidewalk: '#b9b3a4', sand: '#ecd9a0', sea: '#2e7fb8', seaDeep: '#1f5f92',
-      building: ['#c96f4a', '#d9a05b', '#7a9cc6', '#b56576', '#e07a5f', '#6d9c7a', '#a87fb5', '#5b8c8a'],
-      roof: ['#8a4b32', '#a67c3d', '#4a6a8a', '#7a3d4d']
-    },
-    DISTRICTS: [
-      { name: 'Marina', x: 1700, y: 200, w: 900, h: 500 },
-      { name: 'Old Town', x: 100, y: 200, w: 700, h: 500 },
-      { name: 'Downtown', x: 900, y: 700, w: 800, h: 500 },
-      { name: 'Beachfront', x: 100, y: 1300, w: 2400, h: 350 }
+// config.js — SOLARA HEAT: constants, districts, ranks, prices, missions data.
+// All names are original inventions for the city of Solara Coast.
+(function (root) {
+  var S = root.Solara || (root.Solara = {});
+  S.CONFIG = {
+    title: 'SOLARA HEAT',
+    city: 'Solara Coast',
+    worldSize: 420,          // playable square, metres
+    roadSpacing: 60,
+    roadWidth: 12,
+    seaX: -210,              // sea lies west of x = -180
+    beachX: -180,
+    maxTraffic: 22,
+    maxPeds: 40,
+    maxWanted: 5,
+    saveKey: 'solara-heat-save-v1',
+    garage: { repair: 50, tune: 200, armor: 150, repaint: 40 },
+    raceReward: { cash: 150, respect: 8 },
+    ranks: [
+      { name: 'Rookie', respect: 0 },
+      { name: 'Hustler', respect: 30 },
+      { name: 'Wheelman', respect: 70 },
+      { name: 'Street Boss', respect: 130 },
+      { name: 'Heat Legend', respect: 210 },
+      { name: 'King of Solara', respect: 320 }
     ],
-    RANKS: ['Rookie', 'Street', 'Crew', 'Lieutenant', 'King of Solara'],
-    CAR_COLORS: ['#d94f3d', '#3d7dd9', '#e8c33d', '#e8e8e8', '#2b2b2b', '#4fae62', '#c65aad', '#e07a2f', '#7ec8c0', '#f2f2f2'],
-    // Invented Solara Coast businesses (neon signs on landmark buildings).
-    SIGNS: [
-      { text: 'SOLARA HOTEL', sub: 'MARINA • ROOMS', bg: '#1c2f4a', fg: '#ffd94d' },
-      { text: 'BEACH CAFE', sub: 'COFFEE • TACOS', bg: '#14352a', fg: '#7fd4ff' },
-      { text: 'TACO SOL', sub: 'OPEN LATE', bg: '#4a1c1c', fg: '#ff9d5c' },
-      { text: 'NEON PALMS', sub: 'CLUB • DANCE', bg: '#2a1440', fg: '#ff6fd8' },
-      { text: 'MARINA MOTORS', sub: 'CARS • PARTS', bg: '#33240a', fg: '#ffe9a0' },
-      { text: 'SOLARA GARAGE', sub: 'REPAIR • TUNING', bg: '#0f2a4a', fg: '#7fd4ff' }
+    radio: ['SOLARA FM', 'HEAT FM', 'PALM RADIO'],
+    districts: [
+      { name: 'Beachfront', x0: -210, z0: -210, x1: -120, z1: 210, color: '#e8c98a' },
+      { name: 'Downtown', x0: -120, z0: -110, x1: 60, z1: 110, color: '#8a9ab8' },
+      { name: 'Marina', x0: -120, z0: 110, x1: 60, z1: 210, color: '#7fb8a8' },
+      { name: 'Palms Park', x0: 60, z0: -110, x1: 210, z1: 60, color: '#7fb86a' },
+      { name: 'Northside', x0: 60, z0: 60, x1: 210, z1: 210, color: '#b8a88a' }
     ],
-    // In-car radio: three invented stations, all synthesized live.
-    STATIONS: [
-      { name: 'SOLARA FM', desc: 'sunset chill', bpm: 76 },
-      { name: 'HEAT FM', desc: 'street bass', bpm: 112 },
-      { name: 'PALM RADIO', desc: 'island groove', bpm: 96 }
-    ],
-    GARAGE: { x: 2050, y: 520 },
-    RACE_START: { x: 1140, y: 840 },
-    WEAPONS: [
-      { id: 'fists', name: 'FISTS', key: '1' },
-      { id: 'pistol', name: 'PISTOL', key: '2', ammo: 12, maxAmmo: 48 }
-    ]
+    neonSigns: ['SOLARA HOTEL', 'BEACH CAFE', 'TACO SOL', 'NEON PALMS', 'MARINA MOTORS', 'SOLARA GARAGE', 'PIER 9', 'SUNSET DINER', 'CORAL BAR', 'WAVE WASH']
   };
-  // Seeded RNG so the city is the same every run (deterministic world).
-  function mulberry32(seed) {
-    let a = seed >>> 0;
-    return function () {
-      a |= 0; a = (a + 0x6D2B79F5) | 0;
-      let t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  // Fresh game state factory — every field the HUD, save/load and tests use.
+  S.newState = function () {
+    return {
+      cash: 250, respect: 0, wanted: 0, heat: 0,
+      ammo: 24, weapon: 'fists', carHp: 100, playerHp: 100,
+      missionIndex: 0, missionsDone: 0, racesWon: 0, carsStolen: 0,
+      garage: { tune: 0, armor: 0, color: 0 },
+      radio: 0, muted: false, busted: false, paused: false,
+      started: false, playTime: 0,
+      player: { x: -40, z: 40, angle: 0, speed: 0, inCar: false, carId: null },
+      car: null, // active car object when driving
+      mission: null, race: null, roadblock: false, helicopter: false
     };
-  }
-  global.SolaraConfig = CFG;
-  global.solaraRng = mulberry32;
-})(window);
+  };
+  S.state = S.newState();
+  // Rank from respect points.
+  S.rankFor = function (respect) {
+    var r = S.CONFIG.ranks[0];
+    for (var i = 0; i < S.CONFIG.ranks.length; i++) {
+      if (respect >= S.CONFIG.ranks[i].respect) r = S.CONFIG.ranks[i];
+    }
+    return r;
+  };
+  S.nextRank = function (respect) {
+    for (var i = 0; i < S.CONFIG.ranks.length; i++) {
+      if (respect < S.CONFIG.ranks[i].respect) return S.CONFIG.ranks[i];
+    }
+    return null;
+  };
+  S.districtAt = function (x, z) {
+    var d = S.CONFIG.districts;
+    for (var i = 0; i < d.length; i++) {
+      if (x >= d[i].x0 && x < d[i].x1 && z >= d[i].z0 && z < d[i].z1) return d[i].name;
+    }
+    return 'Solara Coast';
+  };
+  // Deterministic seeded RNG so the city layout is stable run to run.
+  S.rng = function (seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  };
+  S.clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  S.dist2d = function (ax, az, bx, bz) {
+    var dx = ax - bx, dz = az - bz; return Math.sqrt(dx * dx + dz * dz);
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

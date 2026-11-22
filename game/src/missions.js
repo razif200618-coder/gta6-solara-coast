@@ -1,79 +1,54 @@
-// missions.js — the 10 story missions of SOLARA HEAT.
-// Types: goto (reach the marker), collect (pick up N crates), race
-// (checkpoints in order against a timer), escape (lose the wanted level,
-// then reach the hideout). Each mission pays cash and respect.
-(function (global) {
-  'use strict';
-  const MISSIONS = [
-    { id: 1, title: 'First Wheels', giver: 'Dara', brief: 'Dara needs wheels. Steal any car and bring it to the Marina garage.', type: 'goto', target: { x: 2050, y: 520 }, reward: 150, respect: 10 },
-    { id: 2, title: 'Courier Run', giver: 'Dara', brief: 'Deliver the package to the Beach Cafe before the timer runs out.', type: 'goto', target: { x: 1250, y: 1520 }, timer: 75, reward: 220, respect: 12 },
-    { id: 3, title: 'Getaway', giver: 'Kiko', brief: 'The Solara police are on you. Lose them, then reach the Old Town hideout.', type: 'escape', target: { x: 420, y: 420 }, reward: 300, respect: 15 },
-    { id: 4, title: 'Street Race', giver: 'Rex', brief: 'Beat the rival through 5 checkpoints around Downtown. No shortcuts — the checkpoints decide.', type: 'race', checkpoints: [{ x: 820, y: 520 }, { x: 1460, y: 520 }, { x: 1460, y: 1160 }, { x: 820, y: 1160 }, { x: 1140, y: 840 }], timer: 90, reward: 400, respect: 18 },
-    { id: 5, title: 'The Pickup', giver: 'Dara', brief: 'Collect 3 crates scattered around the city. Watch for patrols.', type: 'collect', crates: [{ x: 520, y: 840 }, { x: 1780, y: 840 }, { x: 1140, y: 1480 }], reward: 350, respect: 16 },
-    { id: 6, title: 'Harbor Heist', giver: 'Kiko', brief: 'Grab the briefcase at the harbor, then escape to the hideout with the police on your tail.', type: 'escape', target: { x: 420, y: 420 }, pickup: { x: 2250, y: 1160 }, reward: 600, respect: 22 },
-    { id: 7, title: 'Escort', giver: 'Mara', brief: 'Drive Mara across the city to the lighthouse road. Keep her safe — no hard crashes.', type: 'goto', target: { x: 2350, y: 1520 }, timer: 100, reward: 500, respect: 20 },
-    { id: 8, title: 'King of Solara', giver: 'Rex', brief: 'The final race: 5 checkpoints, then reach the lighthouse. Win it and Solara is yours.', type: 'race', checkpoints: [{ x: 520, y: 520 }, { x: 1780, y: 520 }, { x: 1780, y: 1480 }, { x: 520, y: 1480 }, { x: 2350, y: 1520 }], timer: 120, reward: 1000, respect: 30 },
-    { id: 9, title: 'Beachfront Blitz', giver: 'Dara', brief: 'A sunrise sprint down the beachfront boulevard: 5 checkpoints before the timer runs out.', type: 'race', checkpoints: [{ x: 520, y: 1480 }, { x: 1140, y: 1480 }, { x: 1780, y: 1480 }, { x: 2250, y: 1480 }, { x: 2350, y: 1520 }], timer: 100, reward: 550, respect: 24 },
-    { id: 10, title: 'The Solara Job', giver: 'Rex', brief: 'The big one: grab the lighthouse stash, then lose a full police response and reach the hideout.', type: 'escape', target: { x: 420, y: 420 }, pickup: { x: 2350, y: 1520 }, wantedOnPickup: 2, reward: 1200, respect: 35 }
+// missions.js — 10 original story missions for Solara Coast.
+// Each: title, giver, briefing, target point, reward. Completing one advances
+// the story and pays cash + respect.
+(function (root) {
+  var S = root.Solara || (root.Solara = {});
+  var M = S.Missions = {};
+  M.list = [
+    { id: 1, title: 'First Heat', giver: 'Mara Voss', brief: 'Mara needs a driver. Steal the red coupe on Coral Row and bring it to the Marina.', target: { x: -60, z: 140 }, cash: 200, respect: 10 },
+    { id: 2, title: 'Sunset Delivery', giver: 'Mara Voss', brief: 'A package for the Beach Cafe. Drive it down the boulevard — do not smash the car.', target: { x: -140, z: -80 }, cash: 250, respect: 10 },
+    { id: 3, title: 'Pier Pressure', giver: 'Dario Sol', brief: 'Dario\'s rivals are shaking down the pier. Clear the pier deck, then meet Dario at the marina office.', target: { x: -90, z: 170 }, cash: 300, respect: 12 },
+    { id: 4, title: 'Neon Run', giver: 'Lena Kade', brief: 'Lena\'s race crew needs a fourth car. Win the downtown sprint to earn her trust.', target: { x: 20, z: 20 }, cash: 350, respect: 14 },
+    { id: 5, title: 'Taco Truck Trouble', giver: 'Dario Sol', brief: 'The Taco Sol truck was jacked. Get it back from Northside and return it to the beachfront.', target: { x: 150, z: 150 }, cash: 400, respect: 14 },
+    { id: 6, title: 'The Informant', giver: 'Mara Voss', brief: 'An informant is hiding in Palms Park. Escort him to the Solara Hotel without losing the tail.', target: { x: 120, z: -20 }, cash: 500, respect: 16 },
+    { id: 7, title: 'Marina Motors', giver: 'Lena Kade', brief: 'A buyer at Marina Motors wants the fastest car on the coast. Deliver a tuned ride — garage tune helps.', target: { x: -40, z: 180 }, cash: 600, respect: 18 },
+    { id: 8, title: 'Heat Wave', giver: 'Dario Sol', brief: 'The PD set up roadblocks across downtown. Break through and reach the park safehouse.', target: { x: 100, z: 0 }, cash: 700, respect: 20 },
+    { id: 9, title: 'King\'s Gambit', giver: 'Mara Voss', brief: 'The old king of the coast, Ren Corso, is stepping down. Prove yourself in one last race at the beachfront.', target: { x: -150, z: 0 }, cash: 900, respect: 25 },
+    { id: 10, title: 'King of Solara', giver: 'Ren Corso', brief: 'Final job: drive the coast end to end, lose a 4-star tail, and take the crown at the Solara Hotel.', target: { x: -100, z: -100 }, cash: 1500, respect: 40 }
   ];
-  function makeMissionState() {
-    return { active: null, step: 0, timer: 0, collected: 0, pickedUp: false, completed: [], message: '' };
-  }
-  function startMission(state, idx) {
-    const m = MISSIONS[idx];
+  M.current = function () {
+    var st = S.state;
+    if (st.missionIndex >= M.list.length) return null;
+    return M.list[st.missionIndex];
+  };
+  M.start = function () {
+    var m = M.current();
     if (!m) return null;
-    state.active = m; state.step = 0; state.timer = m.timer || 0; state.collected = 0; state.pickedUp = false;
-    state.message = 'Mission: ' + m.title + ' — ' + m.brief;
-    return m;
-  }
-  function currentTarget(state) {
-    const m = state.active; if (!m) return null;
-    if (m.type === 'race') return m.checkpoints[Math.min(state.step, m.checkpoints.length - 1)];
-    if (m.type === 'collect') return m.crates[state.collected] || m.target;
-    if (m.type === 'escape' && m.pickup && !state.pickedUp) return m.pickup;
-    return m.target;
-  }
-  // Returns 'done' | 'failed' | null. Mutates state.
-  function updateMission(state, player, police, dt) {
-    const m = state.active; if (!m) return null;
-    if (m.timer) { state.timer -= dt; if (state.timer <= 0) { state.active = null; state.message = 'Mission failed: out of time.'; return 'failed'; } }
-    const t = currentTarget(state);
-    if (!t) return null;
-    const d = Math.hypot(player.x - t.x, player.y - t.y);
-    if (m.type === 'collect') {
-      if (d < 46) { state.collected++; state.message = 'Crate ' + state.collected + '/' + m.crates.length + ' collected.'; if (state.collected >= m.crates.length) return complete(state, player); }
-      return null;
+    S.state.mission = { id: m.id, title: m.title, giver: m.giver, brief: m.brief, target: m.target, done: false };
+    return S.state.mission;
+  };
+  // Reach the target marker to complete the active mission.
+  M.checkProgress = function () {
+    var st = S.state;
+    if (!st.mission || st.mission.done) return false;
+    if (S.dist2d(st.player.x, st.player.z, st.mission.target.x, st.mission.target.z) < 8) {
+      return M.complete();
     }
-    if (m.type === 'escape' && m.pickup && !state.pickedUp) {
-      if (d < 46) {
-        state.pickedUp = true; state.message = 'Briefcase grabbed! Now lose the police and reach the hideout.';
-        if (m.wantedOnPickup && typeof global.SolaraPolice !== 'undefined') global.SolaraPolice.addWanted(police, m.wantedOnPickup, { player });
-      }
-      return null;
-    }
-    if (m.type === 'race') {
-      if (d < 56) {
-        state.step++;
-        if (state.step >= m.checkpoints.length) return complete(state, player);
-        state.message = 'Checkpoint ' + (state.step + 1) + '/' + m.checkpoints.length;
-      }
-      return null;
-    }
-    if (m.type === 'escape') {
-      if (police.wanted > 0) { state.message = 'Lose the police first, then reach the hideout.'; return null; }
-      if (d < 56) return complete(state, player);
-      return null;
-    }
-    if (d < 56) return complete(state, player);
-    return null;
-  }
-  function complete(state, player) {
-    const m = state.active;
-    player.cash += m.reward; player.respect += m.respect;
-    state.completed.push(m.id);
-    state.message = 'Mission complete: ' + m.title + ' +$' + m.reward;
-    state.active = null;
-    return 'done';
-  }
-  global.SolaraMissions = { MISSIONS, makeMissionState, startMission, currentTarget, updateMission };
-})(window);
+    return false;
+  };
+  M.complete = function () {
+    var st = S.state, m = M.current();
+    if (!m || !st.mission) return false;
+    st.mission.done = true;
+    st.cash += m.cash; st.respect += m.respect;
+    st.missionsDone++; st.missionIndex++;
+    st.mission = null;
+    if (S.Audio) S.Audio.missionDone();
+    return { cash: m.cash, respect: m.respect, next: M.current() };
+  };
+  M.objectiveText = function () {
+    if (S.state.mission) return S.state.mission.title + ' — reach the gold marker';
+    var m = M.current();
+    return m ? 'Next: ' + m.title + ' (' + m.giver + ')' : 'All missions complete — you are King of Solara';
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
