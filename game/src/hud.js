@@ -53,12 +53,12 @@
       ctx.fillStyle = '#fff'; ctx.font = '14px sans-serif';
       ctx.fillText(game.missions.message.slice(0, 80), 28, 78);
     }
-    // Waypoint arrow at screen edge.
+    // Waypoint arrow at screen edge, relative to the camera heading.
     const tgt = game.missionTarget;
     if (tgt) {
       const dx = tgt.x - p.x, dy = tgt.y - p.y, d = Math.hypot(dx, dy);
       if (d > 60) {
-        const a = Math.atan2(dy, dx);
+        const a = Math.atan2(dy, dx) - (game.camHeading || 0);
         const ex = 640 + Math.cos(a) * 300, ey = 360 + Math.sin(a) * 240;
         ctx.fillStyle = '#ffd94d'; ctx.save(); ctx.translate(ex, ey); ctx.rotate(a);
         ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-8, -9); ctx.lineTo(-8, 9); ctx.fill(); ctx.restore();
@@ -69,7 +69,7 @@
     drawMinimap(ctx, game, CFG.VIEW_W - 196, 58, 180, 132);
     // Controls hint.
     ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = '12px sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('WASD move/drive • E enter car • Space punch/handbrake • Shift run • M mission • P pause • R reset', 16, CFG.VIEW_H - 12);
+    ctx.fillText('WASD move/drive • E enter car • Space punch/handbrake • Shift run • M mission • P pause • R reset • Q orbit camera', 16, CFG.VIEW_H - 12);
   }
   global.SolaraHUD = { drawHUD, drawMinimap, rankName };
 })(window);

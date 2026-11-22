@@ -1,14 +1,24 @@
 // main.js — SOLARA HEAT game loop, menus, save/load, missions, crime.
 // States: menu → playing → paused / busted → menu. All original code.
+// Rendering is 3D (WebGL, hand-written engine) on #gl with a 2D HUD
+// overlay on #hud. The world logic is still the 2D x/y grid.
 (function (global) {
   'use strict';
   const CFG = global.SolaraConfig, W = global.SolaraWorld;
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  canvas.width = CFG.VIEW_W; canvas.height = CFG.VIEW_H;
+  const glCanvas = document.getElementById('gl');
+  const hudCanvas = document.getElementById('hud');
+  const hud = hudCanvas.getContext('2d');
+  const glOK = global.SolaraGL3D.init(glCanvas);
+  if (!glOK) {
+    hud.fillStyle = '#101820'; hud.fillRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
+    hud.fillStyle = '#fff'; hud.font = '20px sans-serif'; hud.textAlign = 'center';
+    hud.fillText('WebGL is not available in this browser.', 640, 360);
+  }
+  // Surface script errors in the page title so headless runs can see them.
+  window.addEventListener('error', function (e) { document.title = 'ERR: ' + (e.message || 'unknown'); });
 
   const game = {
-    time: 0, state: 'menu', cam: { x: 0, y: 0 },
+    time: 0, state: 'menu', cam: { x: 0, y: 0 }, camHeading: 0,
     player: global.SolaraPlayer.makePlayer(),
     traffic: global.SolaraEntities.spawnTraffic(14),
     parked: [],
@@ -128,51 +138,51 @@
     if (res === 'failed') { global.SolaraAudio.thud(); }
     game.missionTarget = global.SolaraMissions.currentTarget(game.missions);
     global.SolaraAudio.update(dt, !game.player.onFoot, game.player.car ? game.player.car.speed : 0, game.police.wanted);
-    // Camera follows the player.
-    game.cam.x = Math.max(0, Math.min(CFG.WORLD_W - CFG.VIEW_W, game.player.x - CFG.VIEW_W / 2));
-    game.cam.y = Math.max(0, Math.min(CFG.WORLD_H - CFG.VIEW_H, game.player.y - CFG.VIEW_H / 2));
   }
   function drawMenu() {
-    global.SolaraRender.drawWorld(ctx, game, { x: 400, y: 200 });
-    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffd94d'; ctx.font = 'bold 72px sans-serif';
-    ctx.fillText('SOLARA HEAT', 640, 220);
-    ctx.fillStyle = '#fff'; ctx.font = '24px sans-serif';
-    ctx.fillText('An original open-world crime game in Solara Coast', 640, 265);
-    ctx.font = '17px sans-serif';
-    ctx.fillText('Steal cars • Outrun the Solara police • 8 story missions • Street races', 640, 310);
-    ctx.fillText('WASD move / drive  •  E enter car  •  Space punch  •  M mission  •  P pause', 640, 345);
+    if (glOK) global.SolaraRender3D.drawWorld3D(game, true);
+    hud.clearRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
+    hud.fillStyle = 'rgba(0,0,0,0.55)'; hud.fillRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
+    hud.textAlign = 'center';
+    hud.fillStyle = '#ffd94d'; hud.font = 'bold 72px sans-serif';
+    hud.fillText('SOLARA HEAT', 640, 220);
+    hud.fillStyle = '#fff'; hud.font = '24px sans-serif';
+    hud.fillText('An original open-world crime game in Solara Coast', 640, 265);
+    hud.font = '17px sans-serif';
+    hud.fillText('Steal cars • Outrun the Solara police • 8 story missions • Street races', 640, 310);
+    hud.fillText('WASD move / drive  •  E enter car  •  Space punch  •  M mission  •  P pause', 640, 345);
     const hasSave = !!localStorage.getItem(CFG.SAVE_KEY);
-    ctx.fillStyle = '#ffd94d'; ctx.font = 'bold 20px sans-serif';
-    ctx.fillText(hasSave ? 'Press ENTER to play  •  C to continue your save' : 'Press ENTER to play', 640, 420);
-    ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = '14px sans-serif';
-    ctx.fillText('All names, story, art and sound are original. No Rockstar / GTA content.', 640, 470);
-    ctx.textAlign = 'left';
+    hud.fillStyle = '#ffd94d'; hud.font = 'bold 20px sans-serif';
+    hud.fillText(hasSave ? 'Press ENTER to play  •  C to continue your save' : 'Press ENTER to play', 640, 420);
+    hud.fillStyle = 'rgba(255,255,255,0.8)'; hud.font = '14px sans-serif';
+    hud.fillText('All names, story, art and sound are original. No Rockstar / GTA content.', 640, 470);
+    hud.textAlign = 'left';
   }
   function draw() {
     if (game.state === 'menu') { drawMenu(); return; }
-    global.SolaraRender.drawWorld(ctx, game, game.cam);
-    global.SolaraHUD.drawHUD(ctx, game);
+    if (glOK) global.SolaraRender3D.drawWorld3D(game, false);
+    hud.clearRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
+    global.SolaraHUD.drawHUD(hud, game);
     if (game.state === 'paused') {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
-      ctx.fillStyle = '#fff'; ctx.font = 'bold 48px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('PAUSED', 640, 360); ctx.font = '18px sans-serif';
-      ctx.fillText('Press P to resume', 640, 400); ctx.textAlign = 'left';
+      hud.fillStyle = 'rgba(0,0,0,0.6)'; hud.fillRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
+      hud.fillStyle = '#fff'; hud.font = 'bold 48px sans-serif'; hud.textAlign = 'center';
+      hud.fillText('PAUSED', 640, 360); hud.font = '18px sans-serif';
+      hud.fillText('Press P to resume', 640, 400); hud.textAlign = 'left';
     }
     if (game.state === 'busted') {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
-      ctx.fillStyle = '#ff5a4d'; ctx.font = 'bold 56px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('BUSTED!', 640, 330);
-      ctx.fillStyle = '#fff'; ctx.font = '18px sans-serif';
-      ctx.fillText('The Solara police caught you. -$50. Press ENTER to try again.', 640, 380);
-      ctx.textAlign = 'left';
+      hud.fillStyle = 'rgba(0,0,0,0.7)'; hud.fillRect(0, 0, CFG.VIEW_W, CFG.VIEW_H);
+      hud.fillStyle = '#ff5a4d'; hud.font = 'bold 56px sans-serif'; hud.textAlign = 'center';
+      hud.fillText('BUSTED!', 640, 330);
+      hud.fillStyle = '#fff'; hud.font = '18px sans-serif';
+      hud.fillText('The Solara police caught you. -$50. Press ENTER to try again.', 640, 380);
+      hud.textAlign = 'left';
     }
   }
   let last = performance.now();
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (game.state === 'menu') {
+      game.time += dt;
       if (global.SolaraInput.was('enter')) startPlaying();
       if (global.SolaraInput.was('c') && loadGame()) startPlaying();
     } else if (game.state === 'playing') {
@@ -218,8 +228,6 @@
     } else if (demo === 'foot') {
       game.player.x = 1140; game.player.y = 840;
     }
-    game.cam.x = Math.max(0, Math.min(CFG.WORLD_W - CFG.VIEW_W, game.player.x - CFG.VIEW_W / 2));
-    game.cam.y = Math.max(0, Math.min(CFG.WORLD_H - CFG.VIEW_H, game.player.y - CFG.VIEW_H / 2));
   }
   applyDemo();
   requestAnimationFrame(loop);

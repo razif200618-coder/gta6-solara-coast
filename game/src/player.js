@@ -17,8 +17,16 @@
     if (input.space && p.onFoot && p.punchTimer <= 0) { p.punchTimer = 0.45; game.onPunch && game.onPunch(); }
     if (p.onFoot) {
       const sp = (input.shift ? 230 : 140);
-      let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-      let dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+      // On foot, movement is relative to the chase camera: W walks away
+      // from the camera, A/D strafe. The camera heading is set by the
+      // 3D renderer each frame; fall back to the player's own angle.
+      const ch = (game && game.camHeading != null) ? game.camHeading : p.angle;
+      const fx = Math.cos(ch), fz = Math.sin(ch);
+      const rx = -Math.sin(ch), rz = Math.cos(ch);
+      const fwd = (input.up ? 1 : 0) - (input.down ? 1 : 0);
+      const strafe = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+      let dx = fx * fwd + rx * strafe;
+      let dy = fz * fwd + rz * strafe;
       if (dx || dy) {
         const len = Math.hypot(dx, dy); dx /= len; dy /= len;
         p.angle = Math.atan2(dy, dx);

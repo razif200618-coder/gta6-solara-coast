@@ -8,12 +8,17 @@ An original open-world crime game in the invented coastal city of Solara Coast, 
 
 Open `game/index.html` in a desktop browser (or run `node serve.ts` — no, serve it with any static server, e.g. `python3 -m http.server` in the repo root, then open `/game/`).
 
-- **WASD / arrows** — walk on foot, drive in a car
+- **WASD / arrows** — walk on foot (relative to the camera), drive in a car
 - **E** — enter / exit a car (stealing a moving car raises your wanted level)
 - **Space** — punch on foot, handbrake in a car
 - **Shift** — run / boost
+- **Q or mouse-drag** — orbit the chase camera
 - **M** — start the next story mission
 - **P** — pause, **R** — reset to the hideout
+
+## The game
+
+A real 3D open world: a hand-written WebGL engine (`engine3d.js`) renders Solara Coast in perspective with a third-person chase camera — 3D buildings with lit windows and roofs, roads and sidewalks, a park with trees, beach palms, the sea with sun glare, sun and clouds, box-built cars with wheels and headlights, pedestrians, police cars with flashing light bars, and a helicopter with a searchlight.
 
 ## The game
 
@@ -35,8 +40,9 @@ Open `game/index.html` in a desktop browser (or run `node serve.ts` — no, serv
 - `game/src/player.js` — player on foot and driving
 - `game/src/police.js` — wanted level, chases, roadblocks, helicopter
 - `game/src/missions.js` — the 8 story missions
-- `game/src/render.js` — world rendering
-- `game/src/hud.js` — HUD and minimap
+- `game/src/engine3d.js` — hand-written WebGL1 engine (shaders, matrices, cube geometry, lighting, fog)
+- `game/src/render3d.js` — 3D world rendering: city, cars, people, police, helicopter, mission beam
+- `game/src/hud.js` — HUD and minimap (2D overlay canvas)
 - `game/src/main.js` — game loop, menus, save/load, demo presets
 - `main.ts` — entry program: copies `game/` and `screenshots/` to `/output` and writes `dossier.json`
 
