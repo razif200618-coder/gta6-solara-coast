@@ -1,5 +1,11 @@
 # SOLARA HEAT
 
+[![make.fun · gta6-01](https://make.fun/badge/gta6-01.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+[![rank](https://make.fun/badge/gta6-01/razif200618-coder/gta6-solara-coast/rank.svg)](https://make.fun/bounty/gta6-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+[![reward](https://make.fun/badge/gta6-01/razif200618-coder/gta6-solara-coast/reward.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+
+Built for the [make.fun "Make GTA 6" bounty](https://make.fun/bounty/gta6-01) — my referral link: https://make.fun/r/vnv5dw3z
+
 An original open-world crime game set in the invented sun-soaked coastal city of **Solara Coast**. Drive, steal cars, outrun the police, run street races, fix up your ride at the Marina garage, and climb from Rookie to **King of Solara** across 10 story missions.
 
 All names, characters, story, art and sound are original inventions. No assets from any other game.
