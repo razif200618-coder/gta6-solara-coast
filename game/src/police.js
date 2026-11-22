@@ -27,11 +27,12 @@
     const want = Math.min(3, pol.wanted);
     while (pol.cars.length < want) {
       const a = rng() * Math.PI * 2;
-      pol.cars.push({ x: p.x + Math.cos(a) * 500, y: p.y + Math.sin(a) * 500, angle: a, speed: 0, color: '#1c2f4a' });
+      pol.cars.push({ x: p.x + Math.cos(a) * 500, y: p.y + Math.sin(a) * 500, angle: a, speed: 0, color: '#1c2f4a', hp: 3, disabled: false });
     }
     pol.cars = pol.cars.slice(0, want);
     let nearest = 1e9;
     for (const c of pol.cars) {
+      if (c.disabled) { c.speed = 0; continue; } // wrecked cruisers stay put, smoking
       const target = Math.atan2(p.y - c.y, p.x - c.x);
       let diff = target - c.angle;
       while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2;
@@ -45,7 +46,13 @@
       nearest = Math.min(nearest, d);
       if (d < 26) {
         if (p.onFoot) { pol.bustedTimer += dt; if (pol.bustedTimer > 1.2) game.onBusted && game.onBusted(); }
-        else { c.speed *= 0.4; p.car.speed *= 0.55; game.onCrash && game.onCrash(); }
+        else {
+          c.speed *= 0.4; p.car.speed *= 0.55;
+          const dmg = Math.max(2, 6 - (p.car.upgrades.armor || 0) * 2);
+          p.car.hp = Math.max(0, (p.car.hp == null ? 100 : p.car.hp) - dmg);
+          if (p.car.hp <= 0) { p.car.speed = 0; p.car.smoke = 1; }
+          game.onCrash && game.onCrash();
+        }
       }
     }
     if (nearest > 420) { pol.evadeTimer += dt; if (pol.evadeTimer > 18) { pol.wanted = Math.max(0, pol.wanted - 1); pol.evadeTimer = 0; if (pol.wanted < 3) pol.roadblocks = []; if (pol.wanted < 4) pol.heli = null; } }

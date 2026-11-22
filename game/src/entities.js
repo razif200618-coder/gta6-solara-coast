@@ -6,7 +6,7 @@
   const W = global.SolaraWorld, CFG = global.SolaraConfig;
   const rng = global.solaraRng(777);
   function makeCar(x, y, angle, color, isTraffic) {
-    return { x, y, angle, speed: 0, color: color || CFG.CAR_COLORS[Math.floor(rng() * CFG.CAR_COLORS.length)], w: 34, h: 18, traffic: !!isTraffic, maxSpeed: 70 + rng() * 40, targetSpeed: 70, turnCooldown: 0 };
+    return { x, y, angle, speed: 0, color: color || CFG.CAR_COLORS[Math.floor(rng() * CFG.CAR_COLORS.length)], w: 34, h: 18, traffic: !!isTraffic, maxSpeed: 70 + rng() * 40, targetSpeed: 70, turnCooldown: 0, hp: 100, maxHp: 100, upgrades: { engine: 0, armor: 0 }, smoke: 0 };
   }
   function spawnTraffic(n) {
     const cars = [];
@@ -52,7 +52,7 @@
     for (let i = 0; i < n; i++) {
       const rx = W.roadsV[Math.floor(rng() * W.roadsV.length)];
       const ry = W.roadsH[Math.floor(rng() * W.roadsH.length)];
-      peds.push({ x: rx + (rng() - 0.5) * 120, y: ry + (rng() - 0.5) * 120, angle: rng() * Math.PI * 2, speed: 22 + rng() * 18, name: names[i % names.length], flee: 0, color: ['#e07a5f', '#3d7dd9', '#4fae62', '#c65aad', '#e8c33d'][i % 5] });
+      peds.push({ x: rx + (rng() - 0.5) * 120, y: ry + (rng() - 0.5) * 120, angle: rng() * Math.PI * 2, speed: 22 + rng() * 18, name: names[i % names.length], flee: 0, color: ['#e07a5f', '#3d7dd9', '#4fae62', '#c65aad', '#e8c33d', '#f2f2f2', '#ff8c42'][i % 7], height: 0.9 + rng() * 0.25, hat: rng() < 0.3 });
     }
     return peds;
   }

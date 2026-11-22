@@ -24,7 +24,28 @@
       { name: 'Beachfront', x: 100, y: 1300, w: 2400, h: 350 }
     ],
     RANKS: ['Rookie', 'Street', 'Crew', 'Lieutenant', 'King of Solara'],
-    CAR_COLORS: ['#d94f3d', '#3d7dd9', '#e8c33d', '#e8e8e8', '#2b2b2b', '#4fae62', '#c65aad', '#e07a2f']
+    CAR_COLORS: ['#d94f3d', '#3d7dd9', '#e8c33d', '#e8e8e8', '#2b2b2b', '#4fae62', '#c65aad', '#e07a2f', '#7ec8c0', '#f2f2f2'],
+    // Invented Solara Coast businesses (neon signs on landmark buildings).
+    SIGNS: [
+      { text: 'SOLARA HOTEL', sub: 'MARINA • ROOMS', bg: '#1c2f4a', fg: '#ffd94d' },
+      { text: 'BEACH CAFE', sub: 'COFFEE • TACOS', bg: '#14352a', fg: '#7fd4ff' },
+      { text: 'TACO SOL', sub: 'OPEN LATE', bg: '#4a1c1c', fg: '#ff9d5c' },
+      { text: 'NEON PALMS', sub: 'CLUB • DANCE', bg: '#2a1440', fg: '#ff6fd8' },
+      { text: 'MARINA MOTORS', sub: 'CARS • PARTS', bg: '#33240a', fg: '#ffe9a0' },
+      { text: 'SOLARA GARAGE', sub: 'REPAIR • TUNING', bg: '#0f2a4a', fg: '#7fd4ff' }
+    ],
+    // In-car radio: three invented stations, all synthesized live.
+    STATIONS: [
+      { name: 'SOLARA FM', desc: 'sunset chill', bpm: 76 },
+      { name: 'HEAT FM', desc: 'street bass', bpm: 112 },
+      { name: 'PALM RADIO', desc: 'island groove', bpm: 96 }
+    ],
+    GARAGE: { x: 2050, y: 520 },
+    RACE_START: { x: 1140, y: 840 },
+    WEAPONS: [
+      { id: 'fists', name: 'FISTS', key: '1' },
+      { id: 'pistol', name: 'PISTOL', key: '2', ammo: 12, maxAmmo: 48 }
+    ]
   };
   // Seeded RNG so the city is the same every run (deterministic world).
   function mulberry32(seed) {

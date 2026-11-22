@@ -1,4 +1,4 @@
-// missions.js — the 8 story missions of SOLARA HEAT.
+// missions.js — the 10 story missions of SOLARA HEAT.
 // Types: goto (reach the marker), collect (pick up N crates), race
 // (checkpoints in order against a timer), escape (lose the wanted level,
 // then reach the hideout). Each mission pays cash and respect.
@@ -12,7 +12,9 @@
     { id: 5, title: 'The Pickup', giver: 'Dara', brief: 'Collect 3 crates scattered around the city. Watch for patrols.', type: 'collect', crates: [{ x: 520, y: 840 }, { x: 1780, y: 840 }, { x: 1140, y: 1480 }], reward: 350, respect: 16 },
     { id: 6, title: 'Harbor Heist', giver: 'Kiko', brief: 'Grab the briefcase at the harbor, then escape to the hideout with the police on your tail.', type: 'escape', target: { x: 420, y: 420 }, pickup: { x: 2250, y: 1160 }, reward: 600, respect: 22 },
     { id: 7, title: 'Escort', giver: 'Mara', brief: 'Drive Mara across the city to the lighthouse road. Keep her safe — no hard crashes.', type: 'goto', target: { x: 2350, y: 1520 }, timer: 100, reward: 500, respect: 20 },
-    { id: 8, title: 'King of Solara', giver: 'Rex', brief: 'The final race: 5 checkpoints, then reach the lighthouse. Win it and Solara is yours.', type: 'race', checkpoints: [{ x: 520, y: 520 }, { x: 1780, y: 520 }, { x: 1780, y: 1480 }, { x: 520, y: 1480 }, { x: 2350, y: 1520 }], timer: 120, reward: 1000, respect: 30 }
+    { id: 8, title: 'King of Solara', giver: 'Rex', brief: 'The final race: 5 checkpoints, then reach the lighthouse. Win it and Solara is yours.', type: 'race', checkpoints: [{ x: 520, y: 520 }, { x: 1780, y: 520 }, { x: 1780, y: 1480 }, { x: 520, y: 1480 }, { x: 2350, y: 1520 }], timer: 120, reward: 1000, respect: 30 },
+    { id: 9, title: 'Beachfront Blitz', giver: 'Dara', brief: 'A sunrise sprint down the beachfront boulevard: 5 checkpoints before the timer runs out.', type: 'race', checkpoints: [{ x: 520, y: 1480 }, { x: 1140, y: 1480 }, { x: 1780, y: 1480 }, { x: 2250, y: 1480 }, { x: 2350, y: 1520 }], timer: 100, reward: 550, respect: 24 },
+    { id: 10, title: 'The Solara Job', giver: 'Rex', brief: 'The big one: grab the lighthouse stash, then lose a full police response and reach the hideout.', type: 'escape', target: { x: 420, y: 420 }, pickup: { x: 2350, y: 1520 }, wantedOnPickup: 2, reward: 1200, respect: 35 }
   ];
   function makeMissionState() {
     return { active: null, step: 0, timer: 0, collected: 0, pickedUp: false, completed: [], message: '' };
@@ -43,7 +45,10 @@
       return null;
     }
     if (m.type === 'escape' && m.pickup && !state.pickedUp) {
-      if (d < 46) { state.pickedUp = true; state.message = 'Briefcase grabbed! Now lose the police and reach the hideout.'; }
+      if (d < 46) {
+        state.pickedUp = true; state.message = 'Briefcase grabbed! Now lose the police and reach the hideout.';
+        if (m.wantedOnPickup && typeof global.SolaraPolice !== 'undefined') global.SolaraPolice.addWanted(police, m.wantedOnPickup, { player });
+      }
       return null;
     }
     if (m.type === 'race') {

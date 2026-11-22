@@ -20,18 +20,21 @@
   const game = {
     time: 0, state: 'menu', cam: { x: 0, y: 0 }, camHeading: 0,
     player: global.SolaraPlayer.makePlayer(),
-    traffic: global.SolaraEntities.spawnTraffic(14),
+    traffic: global.SolaraEntities.spawnTraffic(22),
     parked: [],
-    peds: global.SolaraEntities.spawnPeds(24),
+    peds: global.SolaraEntities.spawnPeds(40),
     police: global.SolaraPolice.makePolice(),
     missions: global.SolaraMissions.makeMissionState(),
+    weapons: global.SolaraWeapons.makeWeaponState(),
+    race: global.SolaraActivities.makeRaceState(),
     missionTarget: null,
+    nearGarage: false, nearRaceStart: false,
     punchCooldown: 0, crashCooldown: 0
   };
   // Parked cars along the roads.
   (function () {
     const rng = global.solaraRng(99);
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 14; i++) {
       const rx = W.roadsV[Math.floor(rng() * W.roadsV.length)];
       const ry = W.roadsH[Math.floor(rng() * W.roadsH.length)];
       game.parked.push(global.SolaraEntities.makeCar(rx + 26, ry + (rng() < 0.5 ? -52 : 52), rng() < 0.5 ? 0 : Math.PI / 2, null, false));
@@ -62,7 +65,8 @@
     try {
       localStorage.setItem(CFG.SAVE_KEY, JSON.stringify({
         cash: game.player.cash, respect: game.player.respect,
-        completed: game.missions.completed, x: game.player.x, y: game.player.y
+        completed: game.missions.completed, x: game.player.x, y: game.player.y,
+        weapon: game.player.weapon, ammo: game.player.ammo, standing: game.player.standing
       }));
     } catch (e) {}
   }
@@ -73,6 +77,9 @@
       game.player.cash = s.cash || 0; game.player.respect = s.respect || 0;
       game.missions.completed = s.completed || [];
       game.player.x = s.x || 520; game.player.y = s.y || 520;
+      if (s.weapon) game.player.weapon = s.weapon;
+      if (s.ammo != null) game.player.ammo = s.ammo;
+      if (s.standing) game.player.standing = s.standing;
       return true;
     } catch (e) { return false; }
   }
@@ -108,12 +115,26 @@
     const input = global.SolaraInput.down();
     // E to enter/exit a car.
     if (global.SolaraInput.was('e')) enterExitCar();
+    // F fires the pistol (on foot or leaning out of the car).
+    if (global.SolaraInput.was('f')) {
+      const r = global.SolaraWeapons.shoot(game);
+      if (r === 'empty') game.missions.message = 'Pistol is empty — find an ammo stash (green box).';
+    }
+    // 1/2 switch weapon.
+    if (global.SolaraInput.was('1')) { global.SolaraWeapons.switchWeapon(game.player, 'fists'); game.missions.message = 'Weapon: FISTS.'; }
+    if (global.SolaraInput.was('2')) { global.SolaraWeapons.switchWeapon(game.player, 'pistol'); game.missions.message = 'Weapon: PISTOL (' + (game.player.ammo || 0) + ' ammo).'; }
+    // V cycles the radio station.
+    if (global.SolaraInput.was('v')) game.missions.message = 'Radio: ' + global.SolaraAudio.cycleStation() + '.';
+    // G opens the garage when parked at it.
+    if (global.SolaraInput.was('g') && game.nearGarage) game.state = 'garage';
+    // T starts a street race at the race start.
+    if (global.SolaraInput.was('t') && game.nearRaceStart) global.SolaraActivities.startRace(game);
     // M starts the next mission.
     if (global.SolaraInput.was('m')) {
       if (!game.missions.active) {
         const next = global.SolaraMissions.MISSIONS.find(m => !game.missions.completed.includes(m.id));
-        if (next) { global.SolaraMissions.startMission(game.missions, next.id - 1); global.SolaraAudio.blip(660, 0.15, 'sine', 0.1); }
-        else game.missions.message = 'All 8 missions complete — you are King of Solara!';
+        if (next) { global.SolaraMissions.startMission(game.missions, next.id - 1); global.SolaraWeapons.resetPickups(game); global.SolaraAudio.blip(660, 0.15, 'sine', 0.1); }
+        else game.missions.message = 'All 10 missions complete — you are King of Solara!';
       }
     }
     // R resets the player to the hideout.
@@ -134,9 +155,16 @@
     }
     global.SolaraPolice.updatePolice(game.police, dt, game);
     const res = global.SolaraMissions.updateMission(game.missions, game.player, game.police, dt);
-    if (res === 'done') { global.SolaraAudio.jingle(); saveGame(); }
+    if (res === 'done') {
+      global.SolaraAudio.jingle(); saveGame();
+      global.SolaraActivities.addStanding(game, W.districtAt(game.player.x, game.player.y), 10);
+    }
     if (res === 'failed') { global.SolaraAudio.thud(); }
+    global.SolaraActivities.updateRace(game, dt);
+    global.SolaraWeapons.updateWeapons(game, dt);
     game.missionTarget = global.SolaraMissions.currentTarget(game.missions);
+    game.nearGarage = global.SolaraActivities.nearGarage(game);
+    game.nearRaceStart = global.SolaraActivities.nearRaceStart(game) && !game.race.active;
     global.SolaraAudio.update(dt, !game.player.onFoot, game.player.car ? game.player.car.speed : 0, game.police.wanted);
   }
   function drawMenu() {
@@ -188,6 +216,18 @@
     } else if (game.state === 'playing') {
       if (global.SolaraInput.was('p')) game.state = 'paused';
       else update(dt);
+    } else if (game.state === 'garage') {
+      // Garage menu: 1-4 buy, G or Esc leaves.
+      for (const k of ['1', '2', '3', '4']) {
+        if (global.SolaraInput.was(k)) {
+          const r = global.SolaraActivities.buyGarageItem(game, k);
+          if (r && r !== 'not-available' && r !== 'no-cash') game.missions.message = 'Garage: ' + r + ' — done.';
+          else if (r === 'no-cash') game.missions.message = 'Garage: not enough cash.';
+          else if (r === 'not-available') game.missions.message = 'Garage: already maxed / not needed.';
+        }
+      }
+      if (global.SolaraInput.was('g') || global.SolaraInput.was('escape')) game.state = 'playing';
+      game.time += dt; // keep the world alive behind the menu
     } else if (game.state === 'paused') {
       if (global.SolaraInput.was('p')) game.state = 'playing';
     } else if (game.state === 'busted') {
@@ -203,30 +243,64 @@
     const demo = q.get('demo');
     if (!demo || demo === 'menu') return;
     startPlaying();
+    // Extra density near the player for every shot: traffic + pedestrians
+    // clustered on the beachfront boulevard and the streets around it.
+    // Pedestrians are kept at least minD away from the player so the
+    // player stays the clear subject of the shot.
+    function crowd(cx, cy, minD) {
+      minD = minD || 0;
+      const rng = global.solaraRng(4242);
+      for (let i = 0; i < 6; i++) {
+        const rx = W.roadsV[Math.floor(rng() * W.roadsV.length)];
+        game.traffic.push(global.SolaraEntities.makeCar(rx + (rng() < 0.5 ? -14 : 14), cy + (rng() - 0.5) * 500, rng() < 0.5 ? 0 : Math.PI, null, true));
+      }
+      for (let i = 0; i < 8; i++) {
+        let px = cx + (rng() - 0.5) * 500, py = cy + (rng() - 0.5) * 260;
+        if (minD > 0) {
+          const d = Math.hypot(px - game.player.x, py - game.player.y);
+          if (d < minD) { const a = Math.atan2(py - game.player.y, px - game.player.x); px = game.player.x + Math.cos(a) * minD; py = game.player.y + Math.sin(a) * minD; }
+        }
+        game.peds.push({ x: px, y: py, angle: rng() * Math.PI * 2, speed: 24, name: 'Local', flee: 0, color: ['#e07a5f', '#3d7dd9', '#4fae62', '#e8c33d'][i % 4], height: 1, hat: i % 3 === 0 });
+      }
+    }
     if (demo === 'chase') {
-      game.player.x = 1140; game.player.y = 840;
-      const car = global.SolaraEntities.makeCar(1140, 840, 0, '#d94f3d', false);
+      // 4-star chase down the beachfront boulevard, sea to the south (right).
+      game.player.x = 820; game.player.y = 1480;
+      game.player.weapon = 'pistol'; game.player.ammo = 12;
+      const car = global.SolaraEntities.makeCar(820, 1480, 0, '#d94f3d', false);
       game.player.onFoot = false; game.player.car = car; game.parked.push(car);
       car.speed = 220;
       global.SolaraMissions.startMission(game.missions, 5); // Harbor Heist
       game.missions.pickedUp = true;
-      global.SolaraPolice.addWanted(game.police, 3, game);
+      global.SolaraPolice.addWanted(game.police, 4, game);
       game.police.cars = [
-        { x: 900, y: 700, angle: 0.4, speed: 260, color: '#1c2f4a' },
-        { x: 900, y: 980, angle: -0.3, speed: 250, color: '#1c2f4a' },
-        { x: 1400, y: 700, angle: 2.6, speed: 240, color: '#1c2f4a' }
+        { x: 700, y: 1420, angle: 0, speed: 260, color: '#1c2f4a', hp: 3, disabled: false },
+        { x: 700, y: 1540, angle: 0, speed: 250, color: '#1c2f4a', hp: 3, disabled: false },
+        { x: 1060, y: 1480, angle: Math.PI, speed: 240, color: '#1c2f4a', hp: 3, disabled: false }
       ];
+      crowd(1000, 1480, 130);
     } else if (demo === 'drive') {
-      game.player.x = 820; game.player.y = 520;
-      const car = global.SolaraEntities.makeCar(820, 520, 0, '#3d7dd9', false);
+      // Cruising the palm-lined beachfront boulevard, sea on the right.
+      game.player.x = 520; game.player.y = 1480;
+      const car = global.SolaraEntities.makeCar(520, 1480, 0, '#3d7dd9', false);
       game.player.onFoot = false; game.player.car = car; game.parked.push(car); car.speed = 180;
+      crowd(800, 1480);
     } else if (demo === 'mission') {
-      game.player.x = 1000; game.player.y = 1400;
-      const car = global.SolaraEntities.makeCar(1000, 1400, -Math.PI / 2, '#e8c33d', false);
+      // Courier Run, driving east along the beachfront road toward the
+      // Beach Cafe, sea on the right, palms and traffic ahead.
+      game.player.x = 1000; game.player.y = 1480;
+      const car = global.SolaraEntities.makeCar(1000, 1480, 0, '#e8c33d', false);
       game.player.onFoot = false; game.player.car = car; game.parked.push(car); car.speed = 170;
       global.SolaraMissions.startMission(game.missions, 1); // Courier Run
+      crowd(1150, 1480, 130);
     } else if (demo === 'foot') {
-      game.player.x = 1140; game.player.y = 840;
+      // On foot on the beachfront boulevard sidewalk, stolen car beside you,
+      // palms and traffic ahead, beach and sea to the right.
+      game.player.x = 1500; game.player.y = 1440;
+      game.player.angle = 0; game.player.weapon = 'pistol'; game.player.ammo = 12;
+      const car = global.SolaraEntities.makeCar(1560, 1480, 0, '#4fae62', false);
+      game.parked.push(car);
+      crowd(1750, 1480, 160);
     }
   }
   applyDemo();
